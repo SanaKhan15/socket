@@ -17,7 +17,9 @@
             Chat App
           </div>
           <ul class="list-group list-group-flush">
-            <li class="list-group-item" v-for="message in messages">{{message}}</li>
+            <small v-if="typing">User is typing</small>
+            <li class="list-group-item" v-for="message in messages">
+              <span :class="{'float-right' :message.type === 0}">{{message.message}}</span></li>
           </ul>
           <div class="card-body">
             <form @submit.prevent='send'>
@@ -38,11 +40,17 @@
       el: '#app',
       data: {
         newmessage: '',
-        messages: []
+        messages: [],
+        typing: false
+      },
+      watch: {
+        newmessage(value) {
+          value ? socket.emit('typing') : socket.emit('stopTyping')
+        }
       },
       methods: {
         send() {
-          this.messages.push(this.newmessage)
+          this.messages.push({ message: this.newmessage, type: 0 })
           socket.emit('chat-message', this.newmessage)
           this.newmessage = null;
         }
@@ -53,7 +61,13 @@
           console.log(data)
         })
         socket.on('chat-message', (data) => {
-          this.messages.push(data)
+          this.messages.push({ message: data, type: 1 })
+        })
+        socket.on('typing', () => {
+          this.typing = true
+        })
+        socket.on('stopTyping', () => {
+          this.typing = false
         })
       }
     })
